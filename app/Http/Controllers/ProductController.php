@@ -14,13 +14,28 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Eager load category to prevent N+1 query problems
-        $products = Product::with('category')->latest()->paginate(10);
+        $products = Product::with('category')
+            // Apply search scope if '?search=' exists
+            ->when($request->search, function ($query, $search) {
+                $query->search($search);
+            })
+            // Apply category scope (it handles null checks internally)
+            ->filterByCategory($request->category_id)
+            // Add optional sorting (e.g., ?sort=price_desc)
+            ->when($request->sort === 'price_desc', function ($query) {
+                $query->orderBy('price', 'desc');
+            }, function ($query) {
+                $query->latest(); // Default sort
+            })
+            ->paginate(10)
+            // Critical: Ensure pagination links in the JSON response keep the current filters
+            ->withQueryString(); 
+
         return ProductResource::collection($products);
     }
-
+    
     public function store(StoreProductRequest $request)
     {
         $product = Product::create($request->validated());

@@ -24,4 +24,21 @@ class Product extends Model
     {
         return $this->hasMany(InventoryTransaction::class);
     }
+
+    public function scopeSearch($query, $term)
+    {
+        return $query->where(function ($q) use ($term) {
+            $q->where('name', 'like', '%' . $term . '%')
+              ->orWhere('sku', 'like', '%' . $term . '%')
+              ->orWhere('description', 'like', '%' . $term . '%');
+        });
+    }
+
+    public function scopeFilterByCategory($query, $categoryId)
+    {
+        // The 'when' method only applies the closure if $categoryId is not null
+        return $query->when($categoryId, function ($q, $id) {
+            return $q->where('category_id', $id);
+        });
+    }
 }
