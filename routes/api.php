@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InventoryController;
 
 
 // Public routes (if any)
@@ -25,5 +26,8 @@ Route::middleware('auth:sanctum')->group(function () {
         
         Route::post('/categories', [CategoryController::class, 'store']);
         // Add other admin-only endpoints here
+
+        // Stock adjustment endpoint
+        Route::post('/products/{product}/stock', [InventoryController::class, 'updateStock']);
     });
 });
