@@ -3,6 +3,27 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CategoryController;
+
+
+// Public routes (if any)
+Route::get('/products', [ProductController::class, 'index']);
+
+// Protected routes
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // Anyone authenticated can view details
+    Route::get('/products/{product}', [ProductController::class, 'show']);
+    Route::get('/categories', [CategoryController::class, 'index']);
+
+    // Only admins can create/update/delete
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/products', [ProductController::class, 'store']);
+        Route::put('/products/{product}', [ProductController::class, 'update']);
+        Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+        
+        Route::post('/categories', [CategoryController::class, 'store']);
+        // Add other admin-only endpoints here
+    });
+});
