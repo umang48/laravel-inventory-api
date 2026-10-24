@@ -15,11 +15,17 @@ Route::get('/login', function () {
 // 2. The actual endpoint to get your token
 Route::post('/login', [AuthController::class, 'login']);
 
+
+
 // Public routes (if any)
 Route::get('/products', [ProductController::class, 'index']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
+
+// Add these inside Route::middleware('auth:sanctum')->group(...)
+Route::get('/profile', [AuthController::class, 'profile']);
+Route::post('/logout', [AuthController::class, 'logout']);
     
     // Anyone authenticated can view details
     Route::get('/products/{product}', [ProductController::class, 'show']);
