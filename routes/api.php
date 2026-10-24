@@ -6,7 +6,15 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\AuthController;
 
+
+Route::get('/login', function () {
+    return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+})->name('login');
+
+// 2. The actual endpoint to get your token
+Route::post('/login', [AuthController::class, 'login']);
 
 // Public routes (if any)
 Route::get('/products', [ProductController::class, 'index']);
