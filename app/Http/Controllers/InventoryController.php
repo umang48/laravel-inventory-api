@@ -7,6 +7,8 @@ use App\Http\Requests\StoreInventoryTransactionRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+
+
 use Illuminate\Http\Request;
 
 class InventoryController extends Controller
@@ -47,4 +49,15 @@ class InventoryController extends Controller
             'current_stock' => $product->fresh()->stock_level
         ]);
     }
+
+    public function history(Product $product)
+{
+    // Fetch transactions directly from the audit table
+    $transactions = DB::table('inventory_transactions')
+        ->where('product_id', $product->id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json($transactions);
+}
 }

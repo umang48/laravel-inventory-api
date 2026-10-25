@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Resources\ProductResource;
-
+use App\Http\Requests\UpdateProductRequest;
 
 use Illuminate\Http\Request;
 
@@ -51,12 +51,10 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(StoreProductRequest $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        // Reusing StoreProductRequest for simplicity, though you might 
-        // want an UpdateProductRequest to ignore the current product's unique SKU
         $product->update($request->validated());
-        return new ProductResource($product);
+        return response()->json(['message' => 'Product updated successfully']);
     }
 
     public function destroy(Product $product)

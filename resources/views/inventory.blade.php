@@ -129,9 +129,75 @@
     </div>
     <!-- Your existing Category/Product lists and Stock Update form stay below this -->
 
+    
 
 
+    </div>
 
+    <!-- Edit Category Modal -->
+    <div class="modal fade" id="editCategoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="edit-category-form">
+                    <div class="modal-header"><h5 class="modal-title">Edit Category</h5></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-cat-id">
+                        <input type="text" id="edit-cat-name" class="form-control mb-2" required>
+                        <input type="text" id="edit-cat-slug" class="form-control mb-2" required>
+                        <div id="edit-cat-alert"></div>
+                    </div>
+                    <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="edit-product-form">
+                    <div class="modal-header"><h5 class="modal-title">Edit Product</h5></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit-prod-id">
+                        <select id="edit-prod-category" class="form-control mb-2" required></select>
+                        <input type="text" id="edit-prod-name" class="form-control mb-2" required>
+                        <input type="text" id="edit-prod-sku" class="form-control mb-2" required>
+                        <input type="number" id="edit-prod-price" class="form-control mb-2" step="0.01" required>
+                        <input type="number" id="edit-prod-stock" class="form-control mb-2" required>
+                        <div id="edit-prod-alert"></div>
+                    </div>
+                    <div class="modal-footer"><button type="submit" class="btn btn-success">Save Changes</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History Modal -->
+    <div class="modal fade" id="historyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Stock History: <span id="history-prod-name" class="text-primary"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Action</th>
+                                <th>Quantity</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Data injected via jQuery -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -253,6 +319,17 @@
                     location.reload();
                 }
             });
+
+            // Replace the existing category list append with this:
+            $('#category-list').append(
+                `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${category.name}
+                    <div>
+                        <button class="btn btn-sm btn-primary edit-category-btn me-1" data-id="${category.id}" data-name="${category.name}" data-slug="${category.slug}">Edit</button>
+                        <button class="btn btn-sm btn-danger delete-category-btn" data-id="${category.id}">Delete</button>
+                    </div>
+                </li>`
+            );
         }
 
         // 3. Fetch Products
@@ -293,6 +370,22 @@
                     $('#next-page').data('url', response.links.next).prop('disabled', !response.links.next);
                 }
             });
+
+            // Replace the existing category list append with this:
+            // Replace the existing product list append with this:
+            $('#product-list').append(
+                `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        ${product.name} 
+                        <span class="badge bg-success rounded-pill ms-2">Stock: ${product.stock_level}</span>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-info history-btn me-1" data-id="${product.id}" data-name="${product.name}">History</button>
+                        <button class="btn btn-sm btn-primary edit-product-btn me-1" data-id="${product.id}" data-cat="${product.category_id}" data-name="${product.name}" data-sku="${product.sku}" data-price="${product.price}" data-stock="${product.stock_level}">Edit</button>
+                        <button class="btn btn-sm btn-danger delete-product-btn" data-id="${product.id}">Delete</button>
+                    </div>
+                </li>`
+            );
         }
 
 
@@ -433,6 +526,108 @@
                 // Pass the category and search to maintain state, plus the new page URL
                 fetchProducts(currentCategory, currentSearch, targetUrl);
             }
+        });
+
+
+        // --- Category Edit Logic ---
+        $('#category-list').on('click', '.edit-category-btn', function() {
+            $('#edit-cat-id').val($(this).data('id'));
+            $('#edit-cat-name').val($(this).data('name'));
+            $('#edit-cat-slug').val($(this).data('slug'));
+            $('#edit-cat-alert').empty();
+            $('#editCategoryModal').modal('show');
+        });
+
+        $('#edit-category-form').submit(function(e) {
+            e.preventDefault();
+            let id = $('#edit-cat-id').val();
+            $.ajax({
+                url: `/api/categories/${id}`,
+                method: 'PUT',
+                data: { name: $('#edit-cat-name').val(), slug: $('#edit-cat-slug').val() },
+                success: function() {
+                    $('#editCategoryModal').modal('hide');
+                    fetchCategories();
+                    fetchProducts(); // Refresh products in case category name changed
+                },
+                error: function(xhr) {
+                    $('#edit-cat-alert').html(`<div class="alert alert-danger small">${xhr.responseJSON.message}</div>`);
+                }
+            });
+        });
+
+        // --- Product Edit Logic ---
+        $('#product-list').on('click', '.edit-product-btn', function() {
+            $('#edit-prod-id').val($(this).data('id'));
+            $('#edit-prod-name').val($(this).data('name'));
+            $('#edit-prod-sku').val($(this).data('sku'));
+            $('#edit-prod-price').val($(this).data('price'));
+            $('#edit-prod-stock').val($(this).data('stock'));
+            
+            // Clone the categories from the main form into the edit modal
+            $('#edit-prod-category').html($('#prod-category').html());
+            $('#edit-prod-category').val($(this).data('cat'));
+            
+            $('#edit-prod-alert').empty();
+            $('#editProductModal').modal('show');
+        });
+
+        // Handle Transaction History
+        $('#product-list').on('click', '.history-btn', function() {
+            let productId = $(this).data('id');
+            $('#history-prod-name').text($(this).data('name'));
+            $('#history-table-body').html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
+            
+            $('#historyModal').modal('show');
+
+            $.get(`/api/products/${productId}/transactions`, function(transactions) {
+                $('#history-table-body').empty();
+                
+                if (transactions.length === 0) {
+                    $('#history-table-body').append('<tr><td colspan="4" class="text-center text-muted">No transactions found for this product.</td></tr>');
+                    return;
+                }
+
+                transactions.forEach(function(tx) {
+                    // Format the timestamp nicely
+                    let date = new Date(tx.created_at).toLocaleString('en-IN');
+                    
+                    // Add color coding for add vs subtract
+                    let badgeClass = tx.type === 'add' ? 'bg-success' : 'bg-danger';
+                    
+                    $('#history-table-body').append(
+                        `<tr>
+                            <td>${date}</td>
+                            <td><span class="badge ${badgeClass}">${tx.type.toUpperCase()}</span></td>
+                            <td>${tx.quantity}</td>
+                            <td class="text-muted">${tx.notes || '-'}</td>
+                        </tr>`
+                    );
+                });
+            });
+        });
+
+        $('#edit-product-form').submit(function(e) {
+            e.preventDefault();
+            let id = $('#edit-prod-id').val();
+            $.ajax({
+                url: `/api/products/${id}`,
+                method: 'PUT',
+                data: {
+                    category_id: $('#edit-prod-category').val(),
+                    name: $('#edit-prod-name').val(),
+                    sku: $('#edit-prod-sku').val(),
+                    price: $('#edit-prod-price').val(),
+                    stock_level: $('#edit-prod-stock').val()
+                },
+                success: function() {
+                    $('#editProductModal').modal('hide');
+                    fetchProducts();
+                },
+                error: function(xhr) {
+                    $('#edit-prod-alert').html(`<div class="alert alert-danger small">${xhr.responseJSON.message}</div>`);
+                }
+            });
         });
 
 

@@ -8,11 +8,48 @@ An enterprise-grade REST API built to manage product inventory, demonstrating de
 * **Auth & Security:** Laravel Sanctum, Spatie Permissions
 * **Frontend (Demo):** jQuery AJAX, Bootstrap 5
 
-## Key Features Highlighted for Interviewers
-* **Database Transactions (`DB::transaction`):** Ensures absolute data integrity between the `products` table and the `inventory_transactions` audit ledger during stock updates.
-* **Role-Based Access Control:** Secure routes utilizing Spatie middleware to restrict stock manipulation to Admin roles.
-* **Global Exception Handling:** Custom interceptors in `bootstrap/app.php` to guarantee standard JSON responses (404, 422, 401) instead of HTML stack traces.
-* **Query Scopes & Pagination:** Dynamic filtering (by category/search term) optimized for large datasets.
+## API Endpoints Documentation
+
+All protected routes require an `Authorization: Bearer {token}` header and an `Accept: application/json` header.
+
+### Authentication
+* **`POST /api/login`**
+  * **Payload:** `email`, `password`
+  * **Returns:** User object and Sanctum access token.
+* **`GET /api/profile`** (Protected)
+  * **Returns:** The currently authenticated user's details.
+* **`POST /api/logout`** (Protected)
+  * **Returns:** Revokes the current token and ends the session.
+
+### Categories (Protected, Requires 'admin' role)
+* **`GET /api/categories`**
+  * **Returns:** A JSON list of all categories.
+* **`POST /api/categories`**
+  * **Payload:** `name` (string), `slug` (string, unique).
+  * **Returns:** 201 Created with the new category data.
+* **`DELETE /api/categories/{id}`**
+  * **Returns:** 204 No Content. Automatically cascades to delete all associated products.
+
+### Products (Protected, Requires 'admin' role)
+* **`GET /api/products`**
+  * **Query Parameters (Optional):** 
+    * `category_id`: Filter products by category.
+    * `search`: Real-time search across SKU and product name.
+    * `page`: For paginated results (10 per page).
+  * **Returns:** Paginated JSON list of products with metadata and navigation links.
+* **`POST /api/products`**
+  * **Payload:** `category_id` (int), `sku` (string, unique), `name` (string), `price` (float), `stock_level` (int).
+  * **Returns:** 201 Created with the new product data.
+* **`DELETE /api/products/{id}`**
+  * **Returns:** 204 No Content.
+
+### Inventory Management (Protected, Requires 'admin' role)
+* **`POST /api/products/{id}/stock`**
+  * **Payload:** 
+    * `type`: 'add' or 'subtract'
+    * `quantity`: integer (min 1)
+    * `notes`: string (optional, e.g., "New shipment")
+  * **Description:** Utilizes strict `DB::transaction` blocks. Updates the product's `stock_level` and simultaneously writes an immutable audit record to the `inventory_transactions` table. Will rollback entirely if either query fails.
 
 ## Setup Instructions
 1. Clone the repository: `git clone https://github.com/yourusername/inventory-api.git`

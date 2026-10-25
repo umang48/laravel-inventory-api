@@ -23,6 +23,9 @@ Route::get('/products', [ProductController::class, 'index']);
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
 
+Route::put('/categories/{category}', [CategoryController::class, 'update']);
+Route::put('/products/{product}', [ProductController::class, 'update']);
+
 // Add these inside Route::middleware('auth:sanctum')->group(...)
 Route::get('/profile', [AuthController::class, 'profile']);
 Route::post('/logout', [AuthController::class, 'logout']);
@@ -45,4 +48,7 @@ Route::post('/logout', [AuthController::class, 'logout']);
         // Stock adjustment endpoint
         Route::post('/products/{product}/stock', [InventoryController::class, 'updateStock']);
     });
+
+    Route::get('/products/{product}/transactions', [\App\Http\Controllers\InventoryController::class, 'history']);
+    
 });
