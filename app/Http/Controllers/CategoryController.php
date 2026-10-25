@@ -48,8 +48,12 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Category $category)
     {
-        //
+        $category->delete(); // This triggers the MySQL cascade delete for products
+        
+        return response()->json([
+            'message' => 'Category and all associated products deleted successfully'
+        ], 204);
     }
 }

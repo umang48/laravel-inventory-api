@@ -38,6 +38,8 @@ Route::post('/logout', [AuthController::class, 'logout']);
         Route::delete('/products/{product}', [ProductController::class, 'destroy']);
         
         Route::post('/categories', [CategoryController::class, 'store']);
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    
         // Add other admin-only endpoints here
 
         // Stock adjustment endpoint

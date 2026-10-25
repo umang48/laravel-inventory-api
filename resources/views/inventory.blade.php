@@ -203,11 +203,15 @@
                 
                 let categories = response.data || response; 
                 categories.forEach(function(category) {
-                    $('#category-list').append(`<li class="list-group-item">${category.name}</li>`);
+                    $('#category-list').append(
+                        `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            ${category.name}
+                            <button class="btn btn-sm btn-danger delete-category-btn" data-id="${category.id}">Delete</button>
+                        </li>`
+                    );
                     $('#prod-category').append(`<option value="${category.id}">${category.name}</option>`);
                 });
             }).fail(function(xhr) {
-                // If token expired, clear it and show login
                 if(xhr.status === 401) {
                     localStorage.removeItem('api_token');
                     location.reload();
@@ -217,25 +221,25 @@
 
         // 3. Fetch Products
         function fetchProducts() {
-    $.get('/api/products', function(response) {
-        $('#product-list').empty();
-        $('#product-select').empty();
-        
-        let products = response.data || response;
-        products.forEach(function(product) {
-            $('#product-list').append(
-                `<li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        ${product.name} 
-                        <span class="badge bg-success rounded-pill ms-2">Stock: ${product.stock_level}</span>
-                    </div>
-                    <button class="btn btn-sm btn-danger delete-product-btn" data-id="${product.id}">Delete</button>
-                </li>`
-            );
-            $('#product-select').append(`<option value="${product.id}">${product.name}</option>`);
-        });
-    });
-}
+            $.get('/api/products', function(response) {
+                $('#product-list').empty();
+                $('#product-select').empty();
+                
+                let products = response.data || response;
+                products.forEach(function(product) {
+                    $('#product-list').append(
+                        `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                ${product.name} 
+                                <span class="badge bg-success rounded-pill ms-2">Stock: ${product.stock_level}</span>
+                            </div>
+                            <button class="btn btn-sm btn-danger delete-product-btn" data-id="${product.id}">Delete</button>
+                        </li>`
+                    );
+                    $('#product-select').append(`<option value="${product.id}">${product.name}</option>`);
+                });
+            });
+        }
 
 
         // Handle Category Creation
@@ -314,25 +318,48 @@
 
 
         // Handle Product Deletion
-$('#product-list').on('click', '.delete-product-btn', function() {
-    let productId = $(this).data('id');
-    
-    // Confirm before destructive action
-    if (confirm('Are you sure you want to delete this product? This cannot be undone.')) {
-        $.ajax({
-            url: `/api/products/${productId}`,
-            method: 'DELETE',
-            success: function() {
-                $('#prod-alert').html('<div class="alert alert-success">Product deleted successfully!</div>');
-                fetchProducts(); // Refresh the list instantly
-            },
-            error: function(xhr) {
-                let errorMsg = xhr.responseJSON.message || 'Error deleting product';
-                $('#prod-alert').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+        $('#product-list').on('click', '.delete-product-btn', function() {
+            let productId = $(this).data('id');
+            
+            // Confirm before destructive action
+            if (confirm('Are you sure you want to delete this product? This cannot be undone.')) {
+                $.ajax({
+                    url: `/api/products/${productId}`,
+                    method: 'DELETE',
+                    success: function() {
+                        $('#prod-alert').html('<div class="alert alert-success">Product deleted successfully!</div>');
+                        fetchProducts(); // Refresh the list instantly
+                    },
+                    error: function(xhr) {
+                        let errorMsg = xhr.responseJSON.message || 'Error deleting product';
+                        $('#prod-alert').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                    }
+                });
             }
         });
-    }
-});
+
+
+        // Handle Category Deletion
+        $('#category-list').on('click', '.delete-category-btn', function() {
+            let categoryId = $(this).data('id');
+            
+            // Emphasize the cascade effect in the warning
+            if (confirm('WARNING: Deleting this category will automatically delete ALL products inside it. Do you want to proceed?')) {
+                $.ajax({
+                    url: `/api/categories/${categoryId}`,
+                    method: 'DELETE',
+                    success: function() {
+                        $('#cat-alert').html('<div class="alert alert-success">Category and related products deleted!</div>');
+                        fetchCategories(); // Refresh the categories list
+                        fetchProducts();   // Refresh products to clear deleted items from UI
+                    },
+                    error: function(xhr) {
+                        let errorMsg = xhr.responseJSON.message || 'Error deleting category';
+                        $('#cat-alert').html(`<div class="alert alert-danger">${errorMsg}</div>`);
+                    }
+                });
+            }
+        });
 
 
 
