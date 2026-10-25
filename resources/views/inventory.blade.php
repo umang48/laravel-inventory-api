@@ -36,8 +36,21 @@
                     <ul id="category-list" class="list-group mb-3"></ul>
                 </div>
                 <div class="col-md-4">
-                    <h4>Products</h4>
-                    <ul id="product-list" class="list-group mb-3"></ul>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="mb-0">Products</h4>
+                    <select id="filter-category" class="form-select form-select-sm w-50">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <!-- New Search Input -->
+                <input type="text" id="search-product" class="form-control form-control-sm mb-3" placeholder="Search by name or SKU...">
+                <ul id="product-list" class="list-group mb-3"></ul>
+                <!-- Pagination Controls -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <button id="prev-page" class="btn btn-sm btn-outline-secondary" disabled>Previous</button>
+                    <span id="page-info" class="text-muted small"></span>
+                    <button id="next-page" class="btn btn-sm btn-outline-secondary" disabled>Next</button>
+                </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card">
@@ -158,6 +171,22 @@
     }
 
 
+    // Handle Real-Time Search with Debounce
+    let searchTimeout;
+    $('#search-product').on('keyup', function() {
+        clearTimeout(searchTimeout);
+        
+        let searchQuery = $(this).val();
+        let currentCategory = $('#filter-category').val(); // Keep the category filter active!
+        
+        searchTimeout = setTimeout(function() {
+            fetchProducts(currentCategory, searchQuery);
+        }, 300);
+    });
+
+
+
+
         // 1. Handle Login
         // 2. Handle Login Button
         $('#login-btn').click(function() {
@@ -201,8 +230,12 @@
                 $('#category-list').empty();
                 $('#prod-category').empty().append('<option value="">Select Category...</option>');
                 
+                // Clear and set default for the new filter
+                $('#filter-category').empty().append('<option value="">All Categories</option>');
+                
                 let categories = response.data || response; 
                 categories.forEach(function(category) {
+                    // Populate Lists & Forms
                     $('#category-list').append(
                         `<li class="list-group-item d-flex justify-content-between align-items-center">
                             ${category.name}
@@ -210,6 +243,9 @@
                         </li>`
                     );
                     $('#prod-category').append(`<option value="${category.id}">${category.name}</option>`);
+                    
+                    // Populate the Filter Dropdown
+                    $('#filter-category').append(`<option value="${category.id}">${category.name}</option>`);
                 });
             }).fail(function(xhr) {
                 if(xhr.status === 401) {
@@ -220,8 +256,17 @@
         }
 
         // 3. Fetch Products
-        function fetchProducts() {
-            $.get('/api/products', function(response) {
+        function fetchProducts(categoryId = '', searchQuery = '', customUrl = null) {
+            // If a pagination URL is passed, use it. Otherwise, build the default one.
+            let url = customUrl;
+            
+            if (!url) {
+                url = '/api/products?';
+                if (categoryId !== '') url += `category_id=${categoryId}&`;
+                if (searchQuery !== '') url += `search=${searchQuery}&`;
+            }
+
+            $.get(url, function(response) {
                 $('#product-list').empty();
                 $('#product-select').empty();
                 
@@ -238,6 +283,15 @@
                     );
                     $('#product-select').append(`<option value="${product.id}">${product.name}</option>`);
                 });
+
+                // Handle Pagination Data
+                if (response.meta && response.links) {
+                    $('#page-info').text(`Page ${response.meta.current_page} of ${response.meta.last_page}`);
+                    
+                    // Attach the exact API URLs to the buttons and enable/disable them
+                    $('#prev-page').data('url', response.links.prev).prop('disabled', !response.links.prev);
+                    $('#next-page').data('url', response.links.next).prop('disabled', !response.links.next);
+                }
             });
         }
 
@@ -358,6 +412,26 @@
                         $('#cat-alert').html(`<div class="alert alert-danger">${errorMsg}</div>`);
                     }
                 });
+            }
+        });
+
+        // Handle Category Filter Change
+        $('#filter-category').off('change').on('change', function() {
+            let selectedCategoryId = $(this).val();
+            let currentSearch = $('#search-product').val();
+            fetchProducts(selectedCategoryId, currentSearch);
+        });
+
+        // Handle Pagination Clicks
+        $('#prev-page, #next-page').click(function() {
+            let targetUrl = $(this).data('url');
+            
+            if (targetUrl) {
+                let currentCategory = $('#filter-category').val();
+                let currentSearch = $('#search-product').val();
+                
+                // Pass the category and search to maintain state, plus the new page URL
+                fetchProducts(currentCategory, currentSearch, targetUrl);
             }
         });
 

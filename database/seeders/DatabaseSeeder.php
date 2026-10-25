@@ -9,6 +9,8 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
+use App\Models\Product;
+
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
@@ -34,5 +36,8 @@ class DatabaseSeeder extends Seeder
 
         // 3. Assign the role
         $user->assignRole($adminRole);
+
+        // Generate 50 random products
+        Product::factory(50)->create();
     }
 }
