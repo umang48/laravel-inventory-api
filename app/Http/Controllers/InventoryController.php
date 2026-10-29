@@ -51,13 +51,42 @@ class InventoryController extends Controller
     }
 
     public function history(Product $product)
-{
-    // Fetch transactions directly from the audit table
-    $transactions = DB::table('inventory_transactions')
-        ->where('product_id', $product->id)
-        ->orderBy('created_at', 'desc')
-        ->get();
+    {
+        // Fetch transactions directly from the audit table
+        $transactions = DB::table('inventory_transactions')
+            ->where('product_id', $product->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    return response()->json($transactions);
-}
+        return response()->json($transactions);
+    }
+
+    public function exportCsv(Product $product)
+    {
+        $transactions = DB::table('inventory_transactions')
+            ->where('product_id', $product->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $fileName = "transactions_{$product->sku}_" . date('Y-m-d') . ".csv";
+
+        return response()->streamDownload(function () use ($transactions) {
+            $file = fopen('php://output', 'w');
+            
+            // Write the CSV headers
+            fputcsv($file, ['Date', 'Action', 'Quantity', 'Notes']);
+
+            // Write the rows
+            foreach ($transactions as $tx) {
+                fputcsv($file, [
+                    $tx->created_at,
+                    strtoupper($tx->type),
+                    $tx->quantity,
+                    $tx->notes ?? '-'
+                ]);
+            }
+            
+            fclose($file);
+        }, $fileName, ['Content-Type' => 'text/csv']);
+    }
 }

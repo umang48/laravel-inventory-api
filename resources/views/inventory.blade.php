@@ -179,7 +179,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Stock History: <span id="history-prod-name" class="text-primary"></span></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div>
+                        <!-- New Download Button -->
+                        <button id="download-csv-btn" class="btn btn-sm btn-success me-2" style="display: none;">Download CSV</button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
                 </div>
                 <div class="modal-body">
                     <table class="table table-bordered table-striped">
@@ -572,8 +576,14 @@
             $('#editProductModal').modal('show');
         });
 
+        // Define a global variable to track which product's history is open
+            let currentHistoryProductId = null;
+            
+
         // Handle Transaction History
         $('#product-list').on('click', '.history-btn', function() {
+            currentHistoryProductId = $(this).data('id');
+            $('#download-csv-btn').show(); // Reveal the download button
             let productId = $(this).data('id');
             $('#history-prod-name').text($(this).data('name'));
             $('#history-table-body').html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
@@ -606,6 +616,46 @@
                 });
             });
         });
+
+        // Handle CSV Download via AJAX Blob
+$('#download-csv-btn').click(function() {
+    if (!currentHistoryProductId) return;
+    
+    let btn = $(this);
+    let originalText = btn.text();
+    btn.text('Downloading...').prop('disabled', true);
+
+    $.ajax({
+        url: `/api/products/${currentHistoryProductId}/transactions/export`,
+        method: 'GET',
+        xhrFields: {
+            responseType: 'blob' // Crucial: tells jQuery to expect a file, not JSON
+        },
+        success: function(blob, status, xhr) {
+            // Extract filename from the Content-Disposition header
+            let filename = 'export.csv';
+            let disposition = xhr.getResponseHeader('Content-Disposition');
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                let matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+            }
+
+            // Create a temporary link element to force the browser download
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },
+        error: function() {
+            alert('Failed to download CSV.');
+        },
+        complete: function() {
+            btn.text(originalText).prop('disabled', false);
+        }
+    });
+});
 
         $('#edit-product-form').submit(function(e) {
             e.preventDefault();

@@ -50,5 +50,5 @@ Route::post('/logout', [AuthController::class, 'logout']);
     });
 
     Route::get('/products/{product}/transactions', [\App\Http\Controllers\InventoryController::class, 'history']);
-    
+    Route::get('/products/{product}/transactions/export', [\App\Http\Controllers\InventoryController::class, 'exportCsv']);
 });
